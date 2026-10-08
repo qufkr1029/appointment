@@ -97,27 +97,24 @@ class AlertDialog(tk.Toplevel):
     def show_list(self):
         if self._closed:
             return
-        self._closed = True
-        self.grab_release()
-        self.destroy()
-        self._on_dismiss()
-        self._on_show_list()
+        self._finish(self._on_dismiss, self._on_show_list)
 
     def close(self):
         if self._closed:
             return
-        self._closed = True
-        self.grab_release()
-        self.destroy()
-        self._on_dismiss()
+        self._finish(self._on_dismiss)
 
     def snooze(self):
         if self._closed:
             return
+        self._finish(self._on_snooze)
+
+    def _finish(self, *callbacks: Callable[[], None]) -> None:
         self._closed = True
         self.grab_release()
         self.destroy()
-        self._on_snooze()
+        for callback in callbacks:
+            callback()
 
     def shutdown(self):
         if self._closed:

@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from datetime import datetime, time, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 import tkinter as tk
 from tkinter import ttk
 
@@ -114,9 +114,7 @@ class AppointmentDialog(tk.Toplevel):
         if len(time_text) == 4 and time_text.isdigit():
             time_text = f"{time_text[:2]}:{time_text[2:]}"
         selected_time = datetime.strptime(time_text, "%H:%M").time()
-        local_value = datetime.combine(
-            selected_date, time(selected_time.hour, selected_time.minute)
-        )
+        local_value = datetime.combine(selected_date, selected_time)
         return local_value.astimezone(timezone.utc).replace(microsecond=0)
 
     def save(self):
