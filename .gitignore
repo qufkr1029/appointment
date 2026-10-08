@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+appointment/__pycache__/
+appointment/**/__pycache__/
+data/appointment.db
+data/appointment.db-shm
+data/appointment.db-wal
