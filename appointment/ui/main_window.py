@@ -288,6 +288,9 @@ class MainWindow:
         dialog.configure(bg=self.BG)
         dialog.bind("<Escape>", lambda _event: (dialog.destroy(), "break")[1])
         dialog.bind("<Return>", lambda _event: (confirm(), "break")[1])
+        # Keep keyboard focus inside the modal. Space activates a focused ttk button,
+        # so consume it here instead of letting it reach the delete button behind it.
+        dialog.bind("<space>", lambda _event: "break")
         body = ttk.Frame(dialog, padding=22, style="App.TFrame")
         body.pack(fill="both", expand=True)
         if permanently:
@@ -302,9 +305,14 @@ class MainWindow:
         ).pack(anchor="w", fill="x", expand=True)
         buttons = ttk.Frame(body, style="App.TFrame")
         buttons.pack(anchor="e", pady=(16, 0))
-        ttk.Button(buttons, text="취소", command=dialog.destroy).pack(side="left", padx=(0, 8))
+        cancel_button = ttk.Button(buttons, text="취소", command=dialog.destroy)
+        cancel_button.pack(side="left", padx=(0, 8))
+        cancel_button.bind("<space>", lambda _event: "break")
 
         def confirm():
+            if not dialog.winfo_exists() or getattr(dialog, "_confirming", False):
+                return
+            dialog._confirming = True
             ids = [item.id for item in selected]
             if permanently:
                 self.repository.permanently_delete(ids)
@@ -314,7 +322,10 @@ class MainWindow:
             self._refresh_unselected()
 
         delete_label = "영구 삭제" if permanently else "삭제"
-        ttk.Button(buttons, text=delete_label, command=confirm).pack(side="left")
+        delete_button = ttk.Button(buttons, text=delete_label, command=confirm)
+        delete_button.pack(side="left")
+        delete_button.bind("<space>", lambda _event: "break")
+        cancel_button.focus_set()
         dialog.update_idletasks()
         dialog.geometry(f"420x{max(220, body.winfo_reqheight() + 44)}")
         center_window(dialog, self.root)
