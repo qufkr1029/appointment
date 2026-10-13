@@ -81,15 +81,15 @@ class Scheduler:
             appointment,
             on_dismiss=lambda: self._dismiss(appointment.id),
             on_show_list=self.on_show_list,
-            on_snooze=lambda: self._snooze(appointment.id),
+            on_snooze=lambda minutes: self._snooze(appointment.id, minutes),
         )
 
     def _dismiss(self, appointment_id: int) -> None:
         self.repository.mark_alert_dismissed(appointment_id)
         self._finish_alert(appointment_id)
 
-    def _snooze(self, appointment_id: int) -> None:
-        self.repository.snooze_alert(appointment_id)
+    def _snooze(self, appointment_id: int, minutes: int) -> None:
+        self.repository.snooze_alert(appointment_id, minutes)
         self.on_snoozed()
         self._finish_alert(appointment_id)
 

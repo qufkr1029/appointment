@@ -287,7 +287,6 @@ class MainWindow:
         dialog.grab_set()
         dialog.configure(bg=self.BG)
         dialog.bind("<Escape>", lambda _event: (dialog.destroy(), "break")[1])
-        dialog.bind("<Return>", lambda _event: (confirm(), "break")[1])
         # Keep keyboard focus inside the modal. Space activates a focused ttk button,
         # so consume it here instead of letting it reach the delete button behind it.
         dialog.bind("<space>", lambda _event: "break")
@@ -308,6 +307,7 @@ class MainWindow:
         cancel_button = ttk.Button(buttons, text="취소", command=dialog.destroy)
         cancel_button.pack(side="left", padx=(0, 8))
         cancel_button.bind("<space>", lambda _event: "break")
+        cancel_button.bind("<Return>", lambda _event: (dialog.destroy(), "break")[1])
 
         def confirm():
             if not dialog.winfo_exists() or getattr(dialog, "_confirming", False):
@@ -325,6 +325,7 @@ class MainWindow:
         delete_button = ttk.Button(buttons, text=delete_label, command=confirm)
         delete_button.pack(side="left")
         delete_button.bind("<space>", lambda _event: "break")
+        delete_button.bind("<Return>", lambda _event: (confirm(), "break")[1])
         cancel_button.focus_set()
         dialog.update_idletasks()
         dialog.geometry(f"420x{max(220, body.winfo_reqheight() + 44)}")

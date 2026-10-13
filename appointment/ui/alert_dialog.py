@@ -13,14 +13,14 @@ class AlertDialog(tk.Toplevel):
         appointment: Appointment,
         on_dismiss: Callable[[], None],
         on_show_list: Callable[[], None],
-        on_snooze: Callable[[], None],
+        on_snooze: Callable[[int], None],
     ):
         super().__init__(parent)
         self._on_dismiss = on_dismiss
         self._on_show_list = on_show_list
         self._on_snooze = on_snooze
         self._closed = False
-        self._focused_button = "confirm"
+        self._focused_control = "confirm"
 
         self.title("일정 알림")
         self.resizable(False, False)
@@ -47,12 +47,21 @@ class AlertDialog(tk.Toplevel):
             text=appointment.local_scheduled_at.strftime("%Y년 %m월 %d일 %H:%M"),
             foreground="#68707C",
         ).pack(anchor="w", pady=(8, 14))
-        ttk.Checkbutton(
-            body,
-            text="5분 후 다시 알림",
-            command=self.snooze,
-            style="Dialog.TCheckbutton",
-        ).pack(anchor="w", pady=(0, 16))
+        snooze_options = {"5분": 5, "10분": 10, "30분": 30, "1시간": 60}
+        self.snooze_var = tk.StringVar(value="5분")
+        snooze_row = ttk.Frame(body)
+        snooze_row.pack(anchor="w", fill="x", pady=(0, 16))
+        ttk.Label(snooze_row, text="다시 알림 간격").pack(side="left", padx=(0, 8))
+        self.snooze_combo = ttk.Combobox(
+            snooze_row,
+            textvariable=self.snooze_var,
+            values=tuple(snooze_options),
+            state="readonly",
+            width=8,
+        )
+        self.snooze_combo.pack(side="left")
+        self.snooze_combo.bind("<<ComboboxSelected>>", self._on_snooze_selected)
+        self._snooze_options = snooze_options
 
         buttons = ttk.Frame(body)
         buttons.pack(anchor="e")
@@ -60,6 +69,12 @@ class AlertDialog(tk.Toplevel):
         self.list_button.pack(side="left", padx=(0, 8))
         self.confirm_button = ttk.Button(buttons, text="확인", command=self.close)
         self.confirm_button.pack(side="left")
+        self._focus_order = ["list", "snooze_combo", "confirm"]
+        self._focus_controls = {
+            "list": self.list_button,
+            "snooze_combo": self.snooze_combo,
+            "confirm": self.confirm_button,
+        }
 
         self.update_idletasks()
         self.geometry(f"420x{max(225, body.winfo_reqheight())}")
@@ -75,7 +90,7 @@ class AlertDialog(tk.Toplevel):
             self.attributes("-topmost", False)
 
     def _on_enter(self, _event=None):
-        if self._focused_button == "list":
+        if self._focused_control == "list":
             self.show_list()
         else:
             self.close()
@@ -86,13 +101,14 @@ class AlertDialog(tk.Toplevel):
         return "break"
 
     def _on_tab(self, _event=None):
-        self._set_button_focus("confirm" if self._focused_button == "list" else "list")
+        current = self._focus_order.index(self._focused_control)
+        direction = -1 if _event is not None and _event.state & 0x1 else 1
+        self._set_button_focus(self._focus_order[(current + direction) % len(self._focus_order)])
         return "break"
 
     def _set_button_focus(self, name):
-        self._focused_button = name
-        button = self.list_button if name == "list" else self.confirm_button
-        button.focus_set()
+        self._focused_control = name
+        self._focus_controls[name].focus_set()
 
     def show_list(self):
         if self._closed:
@@ -107,7 +123,12 @@ class AlertDialog(tk.Toplevel):
     def snooze(self):
         if self._closed:
             return
-        self._finish(self._on_snooze)
+        minutes = self._snooze_options[self.snooze_var.get()]
+        self._finish(lambda: self._on_snooze(minutes))
+
+    def _on_snooze_selected(self, _event=None):
+        self.snooze()
+        return "break"
 
     def _finish(self, *callbacks: Callable[[], None]) -> None:
         self._closed = True
